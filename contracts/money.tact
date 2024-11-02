@@ -2,7 +2,6 @@ import "@stdlib/deploy";
 
 contract Money with Deployable {
     lastSender: Address? = null;
-    const MinTonForStorage: Int = ton("0.01");
     deployer: Address;
 
     init() {
@@ -10,7 +9,7 @@ contract Money with Deployable {
     }
 
     receive() {
-        if (context().value >= 1) {
+        if (context().value >= ton("1")) {
             self.lastSender = sender();
         }
     }

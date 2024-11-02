@@ -45,14 +45,14 @@ describe('SimpleCounter', () => {
     
         const result = await money.send(
             deployer.getSender(),
-            { value: toNano('1') },
+            { value: toNano('1.1') },
             null
         );
     
         const finalBalance = await money.getBalance();
     
         const expectedMinIncrease = toNano('0.99'); 
-        const expectedMaxIncrease = toNano('1');   
+        const expectedMaxIncrease = toNano('1.1');   
 
         const actualIncrease = finalBalance - initialBalance;
 
