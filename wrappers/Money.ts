@@ -1,0 +1,1 @@
+export * from '../build/Money/tact_Money';

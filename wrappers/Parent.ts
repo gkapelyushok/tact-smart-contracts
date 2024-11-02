@@ -1,0 +1,1 @@
+export * from '../build/Fabric/tact_Parent';
