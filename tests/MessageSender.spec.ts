@@ -3,7 +3,7 @@ import { toNano } from '@ton/core';
 import { MessageSender } from '../wrappers/MessageSender';
 import '@ton/test-utils';
 
-describe('SimpleCounter', () => {
+describe('MessageSender', () => {
     let blockchain: Blockchain;
     let deployer: SandboxContract<TreasuryContract>;
     let admin: SandboxContract<TreasuryContract>;
@@ -37,8 +37,6 @@ describe('SimpleCounter', () => {
     });
 
     it('should deploy', async () => {
-        // the check is done inside beforeEach
-        // blockchain and simpleCounter are ready to use
     });
 
     it('should increment by owner', async () => {
@@ -52,13 +50,19 @@ describe('SimpleCounter', () => {
     });
 
     it('should fail if increment not by owner', async () => {
-        await expect(
-            messageSender.send(
-                admin.getSender(),
-                {value: toNano('0.05')},
-                "increment"
-            )
+        
+        const receipt = await messageSender.send(
+            admin.getSender(),
+            {value: toNano('0.05')},
+            "increment"
         );
+
+        expect(receipt.transactions).toHaveTransaction({
+            from: admin.address,
+            to: messageSender.address,
+            success: false,
+            exitCode: 4667
+        })
 
         const i = await messageSender.getI();
         expect(i).toBe(0n);
@@ -70,7 +74,7 @@ describe('SimpleCounter', () => {
             {value: toNano('0.05')},
             {
                 $$type: 'Admin',
-                admin: admin.getSender().address,
+                admin: admin.address,
             }
         );
         await messageSender.send(

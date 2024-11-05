@@ -22,9 +22,7 @@ contract MessageSender with Deployable, Ownable {
     }
 
     receive("increment") {
-        if (sender() != self.admin) {
-            revert("Only admin can increment")
-        }
+        require(sender() == self.admin, "Only admin can increment");
         self.i = self.i + 1;
     }
 
