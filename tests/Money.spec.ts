@@ -13,7 +13,7 @@ describe('Money', () => {
 
         money = blockchain.openContract(await Money.fromInit());
 
-        deployer = await blockchain.treasury('deployer');
+        deployer = await blockchain.treasury('deployer', {balance: toNano('2')});
 
         const deployResult = await money.send(
             deployer.getSender(),
@@ -41,15 +41,33 @@ describe('Money', () => {
 
     it('should send approximately 1 TON to the contract (after gas fees)', async () => {
         const initialBalance = await money.getBalance();
+        const deployerBalance1 = await deployer.getBalance();
         const result = await money.send(
             deployer.getSender(),
             { value: toNano('1') },
             null
         );
+        console.log(printTransactionFees(result.transactions));
+
+        const deployerBalance2 = await deployer.getBalance();
+        console.log("init balance", deployerBalance1);
+        console.log("final balance", deployerBalance2);
+        console.log("expected fee", result.transactions[0].totalFees.coins);
+        const tx = result.transactions[1]
+        if (tx.inMessage?.info.type === "internal") {
+            console.log("internal forwardFee", tx.inMessage?.info.forwardFee);
+        } else if (tx.inMessage?.info.type === "external-in") {
+            console.log("external-in importFee", tx.inMessage?.info.importFee);
+        } else if (tx.inMessage?.info.type === "external-out") {
+            console.log("external-out");
+        }
+        console.log("actual fee", deployerBalance1 - deployerBalance2 - toNano('1'));
+        expect(deployerBalance2).toEqual(deployerBalance1 - toNano('1') - result.transactions[0].totalFees.coins);
+        
         const totalFees = result.transactions[1].totalFees.coins;
         const finalBalance = await money.getBalance();
         expect(finalBalance).toEqual(initialBalance + toNano('1') - totalFees);
-        });
+    });
 
     it('should withdraw all money to owner', async () => {
         await money.send(

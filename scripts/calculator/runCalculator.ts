@@ -1,4 +1,4 @@
-import { Calculator } from '../wrappers/Calculator';
+import { Calculator } from '../../wrappers/Calculator';
 import { NetworkProvider } from '@ton/blueprint';
 import { Address} from '@ton/core';
 

@@ -1,0 +1,1 @@
+export * from '../build/Token/tact_TokenWallet';

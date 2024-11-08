@@ -1,5 +1,5 @@
 import { toNano } from '@ton/core';
-import { StorageChange } from '../wrappers/StorageChange';
+import { StorageChange } from '../../wrappers/StorageChange';
 import { NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {

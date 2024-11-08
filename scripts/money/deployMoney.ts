@@ -1,5 +1,5 @@
 import { toNano } from '@ton/core';
-import { Money } from '../wrappers/Money';
+import { Money } from '../../wrappers/Money';
 import { NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {

@@ -1,5 +1,5 @@
 import { toNano } from '@ton/core';
-import { Time } from '../wrappers/Time';
+import { Time } from '../../wrappers/Time';
 import { NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {

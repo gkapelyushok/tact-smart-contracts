@@ -1,5 +1,5 @@
 import { toNano } from '@ton/core';
-import { MessageSender } from '../wrappers/MessageSender';
+import { MessageSender } from '../../wrappers/MessageSender';
 import { NetworkProvider } from '@ton/blueprint';
 
 export async function run(provider: NetworkProvider) {

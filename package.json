@@ -22,6 +22,7 @@
         "typescript": "^5.6.2"
     },
     "dependencies": {
+        "@aws-crypto/sha256-js": "^5.2.0",
         "@tact-lang/coverage": "^0.0.8",
         "@tact-lang/emulator": "^4.3.0",
         "@tact-lang/ton-abi": "^0.0.3"
