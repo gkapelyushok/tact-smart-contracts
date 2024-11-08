@@ -70,42 +70,22 @@ contract TokenWallet {
 
         // Gas checks
         let fwdFee: Int = ctx.readForwardFee();
-        let fwdCount: Int = 1;
+        let fwdCount: Int = 2;
         if (msg.forwardTonAmount > 0) {
-            fwdCount = 2;
+            fwdCount = 3;
         }
 
         let transferFee: Int = fwdCount * fwdFee + 2 * self.gasConsumption + self.minTonsForStorage;
-
-        require(ctx.value > transferFee, "Invalid value");
+        let firstTransferFee: Int = fwdFee + 2 * self.gasConsumption + self.minTonsForStorage;
+        require(ctx.value > transferFee + ton("0.1"), "Invalid value");
         // Send tokens
         
-
-        let init: StateInit = initOf TokenWallet(self.master, msg.destination, self.percent, self.feeAddress);
-        let walletAddress: Address = contractAddress(init);
-        send(SendParameters{
-            to: walletAddress, 
-            value: transferFee + msg.forwardTonAmount + ton("0.5"), 
-            bounce: true,
-            body: TokenTransferInternal{
-                amount: transferAmount,
-                queryId: msg.queryId,
-                from: self.owner,
-                responseAddress: self.owner,
-                forwardTonAmount: msg.forwardTonAmount,
-                forwardPayload: msg.forwardPayload
-            }.toCell(),
-            code: init.code,
-            data: init.data
-        });
-
         let feeInit: StateInit = initOf TokenWallet(self.master, self.feeAddress, self.percent, self.feeAddress);
         let feeWalletAddress: Address = contractAddress(feeInit);
         send(SendParameters{
             to: feeWalletAddress, 
-            value: 0, 
+            value: ton("0.1"), 
             bounce: true,
-            mode: SendRemainingValue,
             body: TokenTransferInternal{
                 amount: contractFeeAmount,
                 queryId: msg.queryId,
@@ -118,6 +98,26 @@ contract TokenWallet {
             data: feeInit.data
         });
 
+        let msgValue = ctx.value - firstTransferFee - ton("0.1");
+
+        let init: StateInit = initOf TokenWallet(self.master, msg.destination, self.percent, self.feeAddress);
+        let walletAddress: Address = contractAddress(init);
+        send(SendParameters{
+            to: walletAddress, 
+            value: msgValue, 
+            bounce: true,
+            //mode: SendRemainingValue,
+            body: TokenTransferInternal{
+                amount: transferAmount,
+                queryId: msg.queryId,
+                from: self.owner,
+                responseAddress: self.owner,
+                forwardTonAmount: msg.forwardTonAmount,
+                forwardPayload: msg.forwardPayload
+            }.toCell(),
+            code: init.code,
+            data: init.data
+        });
     }
 
     receive(msg: TokenTransferInternal) {
@@ -128,16 +128,11 @@ contract TokenWallet {
             let sinit: StateInit = initOf TokenWallet(self.master, msg.from, self.percent, self.feeAddress);
             require(contractAddress(sinit) == ctx.sender, "Invalid sender");
         }
-        dump(ctx.sender);
-        dump(myAddress());
-        dump(self.balance);
         // Update balance
         self.balance = self.balance + msg.amount;
-        dump(self.balance);
 
         require(self.balance >= 0, "Invalid balance");
 
-        dump("Not invalid balance");
 
         // Adjust value for gas
         let msgValue: Int = ctx.value;
@@ -172,7 +167,6 @@ contract TokenWallet {
                 }.toCell()
             });
         }
-        dump(self.balance);
     }
 
     receive(msg: TokenBurn) {

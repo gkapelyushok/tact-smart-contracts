@@ -15,12 +15,12 @@ describe('Token', () => {
 
 
         token = blockchain.openContract(await Token.fromInit(deployer.address, null, 10n));
-
+        const deployerBalance1 = await deployer.getBalance();
 
         const deployResult = await token.send(
             deployer.getSender(),
             {
-                value: toNano('1.5'),
+                value: toNano('10'),
             },
             {
                 $$type: 'Mint',
@@ -34,11 +34,17 @@ describe('Token', () => {
             deploy: true,
             success: true,
         });
+        const deployerBalance2 = await deployer.getBalance();
+        console.log(deployerBalance1, deployerBalance2);
+
+       // printTransactionFees(deployResult.transactions);
+
         const deployerWalletAddress = await token.getGetWalletAddress(deployer.address);
         const deployerWallet = blockchain.openContract(TokenWallet.fromAddress(deployerWalletAddress));
-        console.log("deployerAdress: ", deployer.address);
-        console.log("deployWalletAddress: ", deployerWalletAddress);
-        console.log((await deployerWallet.getGetWalletData()).balance);
+        expect((await deployerWallet.getGetWalletData()).balance).toEqual(10000n);
+        // console.log("deployerAdress: ", deployer.address);
+        // console.log("deployWalletAddress: ", deployerWalletAddress);
+        // console.log((await deployerWallet.getGetWalletData()).balance);
     });
 
     it("should deploy", async () => {});
@@ -89,14 +95,6 @@ describe('Token', () => {
                 amount: 10000n
             }
         );
-        await token.send(
-            sender.getSender(), 
-            { value: toNano('1') }, 
-            {
-                $$type: 'Mint',
-                amount: 10000n
-            }
-        );
 
         expect(mintResult.transactions).toHaveTransaction({
             from: sender.address,
@@ -113,7 +111,7 @@ describe('Token', () => {
 
         const transferResult = await senderWallet.send(
             sender.getSender(),
-            { value: toNano('2') },
+            { value: toNano('10') },
             {
                 $$type: "TokenTransfer",
                 queryId: 0n,
@@ -140,7 +138,7 @@ describe('Token', () => {
         const ownerBalanceAfter = (await ownerWallet.getGetWalletData()).balance;
 
         expect(senderBalanceAfter).toEqual(senderBalanceBefore - 100n);
-        expect(receiverBalanceAfter).toEqual(0n);
+        expect(receiverBalanceAfter).toEqual(90n);
         expect(ownerBalanceAfter).toEqual(ownerBalanceBefore + 10n);
     });
 
