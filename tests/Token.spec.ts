@@ -15,8 +15,8 @@ describe('Token', () => {
 
 
         token = blockchain.openContract(await Token.fromInit(deployer.address, null, 10n));
-        const deployerBalance1 = await deployer.getBalance();
-
+        // const deployerBalance1 = await deployer.getBalance();
+        
         const deployResult = await token.send(
             deployer.getSender(),
             {
@@ -34,10 +34,10 @@ describe('Token', () => {
             deploy: true,
             success: true,
         });
-        const deployerBalance2 = await deployer.getBalance();
-        console.log(deployerBalance1, deployerBalance2);
+        // const deployerBalance2 = await deployer.getBalance();
+        // console.log(deployerBalance1, deployerBalance2);
 
-       // printTransactionFees(deployResult.transactions);
+        // printTransactionFees(deployResult.transactions);
 
         const deployerWalletAddress = await token.getGetWalletAddress(deployer.address);
         const deployerWallet = blockchain.openContract(TokenWallet.fromAddress(deployerWalletAddress));
@@ -63,7 +63,7 @@ describe('Token', () => {
             }
         );
 
-        printTransactionFees(mintResult.transactions);
+        // printTransactionFees(mintResult.transactions);
         expect(mintResult.transactions).toHaveTransaction({
             from: deployer.address,
             to: token.address,
@@ -123,7 +123,7 @@ describe('Token', () => {
                 forwardPayload: beginCell().endCell().asSlice(),
             }
         );
-        printTransactionFees(transferResult.transactions);
+        // printTransactionFees(transferResult.transactions);
         // expect(transferResult.transactions).toHaveTransaction({
         //     from: sender.address,
         //     to: senderWallet.address,
@@ -132,14 +132,36 @@ describe('Token', () => {
         
 
         const senderBalanceAfter = (await senderWallet.getGetWalletData()).balance;
-        console.log("senderBalanceBefore: ", senderBalanceBefore);
-        console.log("senderBalanceAfter: ", senderBalanceAfter);
+        // console.log("senderBalanceBefore: ", senderBalanceBefore);
+        // console.log("senderBalanceAfter: ", senderBalanceAfter);
         const receiverBalanceAfter = (await receiverWallet.getGetWalletData()).balance;
         const ownerBalanceAfter = (await ownerWallet.getGetWalletData()).balance;
 
         expect(senderBalanceAfter).toEqual(senderBalanceBefore - 100n);
         expect(receiverBalanceAfter).toEqual(90n);
         expect(ownerBalanceAfter).toEqual(ownerBalanceBefore + 10n);
+    });
+
+    it("should fail if Transfer.percent too large", async () => {
+        token = blockchain.openContract(await Token.fromInit(deployer.address, null, 90n));
+        const deployResult = await token.send(
+            deployer.getSender(),
+            {
+                value: toNano('10'),
+            },
+            {
+                $$type: 'Mint',
+                amount: 10000n
+            }
+        );
+
+        expect(deployResult.transactions).toHaveTransaction({
+            from: deployer.address,
+            to: token.address,
+            deploy: true,
+            success: false,
+            exitCode: 24321,
+        });
     });
 
 });

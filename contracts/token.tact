@@ -13,6 +13,7 @@ contract Token with Jetton {
     percent: Int;
 
     init(owner: Address, content: Cell?, percent: Int) {
+        require(percent <= 50 && percent >= 0, "Invalid percent");
         self.totalSupply = 0;
         self.owner = owner;
         self.mintable = true;
@@ -62,7 +63,8 @@ contract TokenWallet {
         require(ctx.sender == self.owner, "Invalid sender");
 
         let contractFeeAmount = msg.amount * self.percent / 100;
-        let transferAmount = msg.amount - contractFeeAmount;
+        let transferAmount = msg.amount;
+        let msgValue = ctx.value;
 
         // Update balance
         self.balance = self.balance - msg.amount;
@@ -79,26 +81,32 @@ contract TokenWallet {
         let firstTransferFee: Int = fwdFee + 2 * self.gasConsumption + self.minTonsForStorage;
         require(ctx.value > transferFee + ton("0.1"), "Invalid value");
         // Send tokens
-        
-        let feeInit: StateInit = initOf TokenWallet(self.master, self.feeAddress, self.percent, self.feeAddress);
-        let feeWalletAddress: Address = contractAddress(feeInit);
-        send(SendParameters{
-            to: feeWalletAddress, 
-            value: ton("0.1"), 
-            bounce: true,
-            body: TokenTransferInternal{
-                amount: contractFeeAmount,
-                queryId: msg.queryId,
-                from: self.owner,
-                responseAddress: self.owner,
-                forwardTonAmount: 0,
-                forwardPayload: emptySlice()
-            }.toCell(),
-            code: feeInit.code,
-            data: feeInit.data
-        });
-
-        let msgValue = ctx.value - firstTransferFee - ton("0.1");
+        if (self.owner != self.feeAddress) {
+            let feeInit: StateInit = initOf TokenWallet(
+                                        self.master, 
+                                        self.feeAddress, 
+                                        self.percent, 
+                                        self.feeAddress
+            );
+            let feeWalletAddress: Address = contractAddress(feeInit);
+            send(SendParameters{
+                to: feeWalletAddress, 
+                value: ton("0.1"), 
+                bounce: true,
+                body: TokenTransferInternal{
+                    amount: contractFeeAmount,
+                    queryId: msg.queryId,
+                    from: self.owner,
+                    responseAddress: self.owner,
+                    forwardTonAmount: 0,
+                    forwardPayload: emptySlice()
+                }.toCell(),
+                code: feeInit.code,
+                data: feeInit.data
+            });
+            transferAmount = transferAmount - contractFeeAmount;
+            msgValue = msgValue - firstTransferFee - ton("0.1");
+        }        
 
         let init: StateInit = initOf TokenWallet(self.master, msg.destination, self.percent, self.feeAddress);
         let walletAddress: Address = contractAddress(init);
@@ -106,7 +114,7 @@ contract TokenWallet {
             to: walletAddress, 
             value: msgValue, 
             bounce: true,
-            //mode: SendRemainingValue,
+            // mode: SendRemainingValue,
             body: TokenTransferInternal{
                 amount: transferAmount,
                 queryId: msg.queryId,
