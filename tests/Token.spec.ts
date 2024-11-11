@@ -34,6 +34,7 @@ describe('Token', () => {
             deploy: true,
             success: true,
         });
+       
         // const deployerBalance2 = await deployer.getBalance();
         // console.log(deployerBalance1, deployerBalance2);
 
@@ -42,6 +43,11 @@ describe('Token', () => {
         const deployerWalletAddress = await token.getGetWalletAddress(deployer.address);
         const deployerWallet = blockchain.openContract(TokenWallet.fromAddress(deployerWalletAddress));
         expect((await deployerWallet.getGetWalletData()).balance).toEqual(10000n);
+        expect(deployResult.transactions).toHaveTransaction({
+            from: deployerWalletAddress,
+            to: deployer.address,
+            success: true
+        });
         // console.log("deployerAdress: ", deployer.address);
         // console.log("deployWalletAddress: ", deployerWalletAddress);
         // console.log((await deployerWallet.getGetWalletData()).balance);
