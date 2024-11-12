@@ -81,7 +81,7 @@ contract TokenWallet {
         let firstTransferFee: Int = fwdFee + 2 * self.gasConsumption + self.minTonsForStorage;
         require(ctx.value > transferFee + ton("0.1"), "Invalid value");
         // Send tokens
-        if (self.owner != self.feeAddress) {
+        if (self.owner != self.feeAddress && contractFeeAmount > 0) {
             let feeInit: StateInit = initOf TokenWallet(
                                         self.master, 
                                         self.feeAddress, 
