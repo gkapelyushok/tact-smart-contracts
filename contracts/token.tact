@@ -13,7 +13,7 @@ contract Token with Jetton {
     percent: Int;
 
     init(owner: Address, content: Cell?, percent: Int) {
-        require(percent <= 50 && percent >= 0, "Invalid percent");
+        require(percent <= 50 && percent > 0, "Invalid percent");
         self.totalSupply = 0;
         self.owner = owner;
         self.mintable = true;
@@ -73,7 +73,7 @@ contract TokenWallet {
         // Gas checks
         let fwdFee: Int = ctx.readForwardFee();
         let fwdCount: Int = 2;
-        if (msg.forwardTonAmount > 0) {
+        if (msg.forward_ton_amount > 0) {
             fwdCount = 3;
         }
 
@@ -95,11 +95,11 @@ contract TokenWallet {
                 bounce: true,
                 body: TokenTransferInternal{
                     amount: contractFeeAmount,
-                    queryId: msg.queryId,
+                    query_id: msg.query_id,
                     from: self.owner,
                     responseAddress: self.owner,
-                    forwardTonAmount: 0,
-                    forwardPayload: emptySlice()
+                    forward_ton_amount: 0,
+                    forward_payload: emptySlice()
                 }.toCell(),
                 code: feeInit.code,
                 data: feeInit.data
@@ -117,11 +117,11 @@ contract TokenWallet {
             // mode: SendRemainingValue,
             body: TokenTransferInternal{
                 amount: transferAmount,
-                queryId: msg.queryId,
+                query_id: msg.query_id,
                 from: self.owner,
                 responseAddress: self.owner,
-                forwardTonAmount: msg.forwardTonAmount,
-                forwardPayload: msg.forwardPayload
+                forward_ton_amount: msg.forward_ton_amount,
+                forward_payload: msg.forward_payload
             }.toCell(),
             code: init.code,
             data: init.data
@@ -148,18 +148,18 @@ contract TokenWallet {
         let storageFee: Int = self.minTonsForStorage - min(tonBalanceBeforeMsg, self.minTonsForStorage);
         msgValue = msgValue - (storageFee + self.gasConsumption);
         // Forward ton
-        if (msg.forwardTonAmount > 0) {
+        if (msg.forward_ton_amount > 0) {
             let fwdFee: Int = ctx.readForwardFee();
-            msgValue = msgValue - (msg.forwardTonAmount + fwdFee);
+            msgValue = msgValue - (msg.forward_ton_amount + fwdFee);
             send(SendParameters{
                 to: self.owner,
-                value: msg.forwardTonAmount,
+                value: msg.forward_ton_amount,
                 bounce: false,
                 body: TokenNotification{
-                    queryId: msg.queryId,
+                    query_id: msg.query_id,
                     amount: msg.amount,
                     from: msg.from,
-                    forwardPayload: msg.forwardPayload
+                    forward_payload: msg.forward_payload
                 }.toCell()
             });
         }
@@ -171,7 +171,7 @@ contract TokenWallet {
                 value: msgValue,
                 bounce: false,
                 body: TokenExcesses{
-                    queryId: msg.queryId
+                    query_id: msg.query_id
                 }.toCell()
             });
         }
@@ -198,7 +198,7 @@ contract TokenWallet {
             mode: SendRemainingValue,
             bounce: true,
             body: TokenBurnNotification{
-                queryId: msg.queryId,
+                query_id: msg.query_id,
                 amount: msg.amount,
                 owner: self.owner,
                 responseAddress: self.owner
@@ -211,7 +211,7 @@ contract TokenWallet {
         // Parse bounced message
         msg.skipBits(32); // 0xFFFFFFFF
         let op: Int = msg.loadUint(32);
-        let queryId: Int = msg.loadUint(64);
+        let query_id: Int = msg.loadUint(64);
         let jettonAmount: Int = msg.loadCoins();
         require(op == 0x178d4519 || op == 0x7bdd97de, "Invalid bounced message");
 
