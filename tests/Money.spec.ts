@@ -53,20 +53,23 @@ describe('Money', () => {
         console.log("init balance", deployerBalance1);
         console.log("final balance", deployerBalance2);
         console.log("expected fee", result.transactions[0].totalFees.coins);
-        const tx = result.transactions[1]
+        const tx = result.transactions[1];
+        let internalForwardFee: bigint = 0n;
         if (tx.inMessage?.info.type === "internal") {
             console.log("internal forwardFee", tx.inMessage?.info.forwardFee);
+            internalForwardFee = tx.inMessage?.info.forwardFee;
         } else if (tx.inMessage?.info.type === "external-in") {
             console.log("external-in importFee", tx.inMessage?.info.importFee);
         } else if (tx.inMessage?.info.type === "external-out") {
             console.log("external-out");
         }
         console.log("actual fee", deployerBalance1 - deployerBalance2 - toNano('1'));
-        expect(deployerBalance2).toEqual(deployerBalance1 - toNano('1') - result.transactions[0].totalFees.coins);
+        expect(deployerBalance2)
+         .toBe(deployerBalance1 - toNano('1') - result.transactions[0].totalFees.coins - internalForwardFee);
         
         const totalFees = result.transactions[1].totalFees.coins;
         const finalBalance = await money.getBalance();
-        expect(finalBalance).toEqual(initialBalance + toNano('1') - totalFees);
+        expect(finalBalance).toBe(initialBalance + toNano('1') - totalFees);
     });
 
     it('should withdraw all money to owner', async () => {
