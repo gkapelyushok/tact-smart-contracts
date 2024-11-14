@@ -24,7 +24,7 @@ describe('MessageSender', () => {
             },
             {
                 $$type: 'Deploy',
-                queryId: 0n,
+                query_id: 0n,
             }
         );
 

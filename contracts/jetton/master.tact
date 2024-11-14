@@ -42,7 +42,7 @@ trait Jetton with Ownable {
                 bounce: false,
                 mode: SendRemainingValue + SendIgnoreErrors,
                 body: TokenExcesses{
-                    queryId: msg.queryId
+                    query_id: msg.query_id
                 }.toCell()
             });
         }
@@ -88,11 +88,11 @@ trait Jetton with Ownable {
             mode: SendRemainingValue,
             body: TokenTransferInternal{ 
                 amount: amount,
-                queryId: 0,
+                query_id: 0,
                 from: myAddress(),
                 responseAddress: responseAddress,
-                forwardTonAmount: 0,
-                forwardPayload: emptySlice()
+                forward_ton_amount: 0,
+                forward_payload: emptySlice()
             }.toCell(),
             code: winit.code,
             data: winit.data

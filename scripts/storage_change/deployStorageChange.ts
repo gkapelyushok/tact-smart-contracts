@@ -12,7 +12,7 @@ export async function run(provider: NetworkProvider) {
         },
         {
             $$type: 'Deploy',
-            queryId: 0n,
+            query_id: 0n,
         }
     );
 

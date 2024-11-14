@@ -120,13 +120,13 @@ describe('Token', () => {
             { value: toNano('10') },
             {
                 $$type: "TokenTransfer",
-                queryId: 0n,
+                query_id: 0n,
                 amount: 100n,
                 destination: receiver.address,  
-                responseDestination: sender.address,
-                customPayload: null,
-                forwardTonAmount: toNano('0.1'),
-                forwardPayload: beginCell().endCell().asSlice(),
+                response_destination: sender.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('0.1'),
+                forward_payload: beginCell().endCell().asSlice(),
             }
         );
         // printTransactionFees(transferResult.transactions);

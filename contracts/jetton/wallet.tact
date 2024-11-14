@@ -30,7 +30,7 @@ contract JettonDefaultWallet {
         // Gas checks
         let fwdFee: Int = ctx.readForwardFee();
         let fwdCount: Int = 1;
-        if (msg.forwardTonAmount > 0) {
+        if (msg.forward_ton_amount > 0) {
             fwdCount = 2;
         }
         require(ctx.value > fwdCount * fwdFee + 2 * self.gasConsumption + self.minTonsForStorage, "Invalid value");
@@ -45,11 +45,11 @@ contract JettonDefaultWallet {
             bounce: true,
             body: TokenTransferInternal{
                 amount: msg.amount,
-                queryId: msg.queryId,
+                query_id: msg.query_id,
                 from: self.owner,
                 responseAddress: self.owner,
-                forwardTonAmount: msg.forwardTonAmount,
-                forwardPayload: msg.forwardPayload
+                forward_ton_amount: msg.forward_ton_amount,
+                forward_payload: msg.forward_payload
             }.toCell(),
             code: init.code,
             data: init.data
@@ -76,18 +76,18 @@ contract JettonDefaultWallet {
         msgValue = msgValue - (storageFee + self.gasConsumption);
 
         // Forward ton
-        if (msg.forwardTonAmount > 0) {
+        if (msg.forward_ton_amount > 0) {
             let fwdFee: Int = ctx.readForwardFee();
-            msgValue = msgValue - (msg.forwardTonAmount + fwdFee);
+            msgValue = msgValue - (msg.forward_ton_amount + fwdFee);
             send(SendParameters{
                 to: self.owner,
-                value: msg.forwardTonAmount,
+                value: msg.forward_ton_amount,
                 bounce: false,
                 body: TokenNotification{
-                    queryId: msg.queryId,
+                    query_id: msg.query_id,
                     amount: msg.amount,
                     from: msg.from,
-                    forwardPayload: msg.forwardPayload
+                    forward_payload: msg.forward_payload
                 }.toCell()
             });
         }
@@ -99,7 +99,7 @@ contract JettonDefaultWallet {
                 value: msgValue,
                 bounce: false,
                 body: TokenExcesses{
-                    queryId: msg.queryId
+                    query_id: msg.query_id
                 }.toCell()
             });
         }
@@ -126,7 +126,7 @@ contract JettonDefaultWallet {
             mode: SendRemainingValue,
             bounce: true,
             body: TokenBurnNotification{
-                queryId: msg.queryId,
+                query_id: msg.query_id,
                 amount: msg.amount,
                 owner: self.owner,
                 responseAddress: self.owner
@@ -139,7 +139,7 @@ contract JettonDefaultWallet {
         // Parse bounced message
         msg.skipBits(32); // 0xFFFFFFFF
         let op: Int = msg.loadUint(32);
-        let queryId: Int = msg.loadUint(64);
+        let query_id: Int = msg.loadUint(64);
         let jettonAmount: Int = msg.loadCoins();
         require(op == 0x178d4519 || op == 0x7bdd97de, "Invalid bounced message");
 
