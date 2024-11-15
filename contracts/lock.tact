@@ -1,7 +1,8 @@
 import "@stdlib/deploy";
+import "@stdlib/ownable";
 import "./jetton/messages";
 
-contract LockChild with Deployable{
+contract LockChild with Deployable, Ownable {
     master: Address;
     owner: Address;
     lockedAmount: Int;
@@ -22,7 +23,7 @@ contract LockChild with Deployable{
         require(ctx.value >= ton("0.1"), "not enough value");
         // Check the sender is from the Jetton Wallet
         if (self.contractJettonWallet == null) {
-            self.contractJettonWallet = context().sender;
+            self.contractJettonWallet = ctx.sender;
         }
         require(ctx.sender == self.contractJettonWallet, "not from one of any jetton wallet");
         require(msg.from == self.owner, "not owner");
@@ -31,7 +32,7 @@ contract LockChild with Deployable{
 
     receive("unlock") {
         let ctx: Context = context();
-        require(ctx.sender == self.owner, "not owner");
+        self.requireOwner();
         require(self.lockedAmount > 0, "not locked amount");
         let forward_payload: Slice = beginCell().storeUint(0, 8).asSlice();
         send(SendParameters{
@@ -43,7 +44,7 @@ contract LockChild with Deployable{
                     query_id: 0,
                     amount: self.lockedAmount,
                     destination: ctx.sender,
-                    response_destination: self.contractJettonWallet!!,
+                    response_destination: self.owner,
                     custom_payload: null,
                     forward_ton_amount: ton("0.1"),
                     forward_payload: forward_payload
