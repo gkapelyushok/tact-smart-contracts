@@ -63,7 +63,9 @@ contract TokenWallet {
         require(ctx.sender == self.owner, "Invalid sender");
 
         let contractFeeAmount = msg.amount * self.percent / 100;
+        // dump(contractFeeAmount);
         let transferAmount = msg.amount;
+        // dump(transferAmount);
         let msgValue = ctx.value;
 
         // Update balance
@@ -129,7 +131,7 @@ contract TokenWallet {
     }
 
     receive(msg: TokenTransferInternal) {
-
+        dump(msg.amount);
         // Check sender
         let ctx: Context = context();
         if (ctx.sender != self.master) {
@@ -137,8 +139,10 @@ contract TokenWallet {
             require(contractAddress(sinit) == ctx.sender, "Invalid sender");
         }
         // Update balance
+        // dump(self.balance);
+        // dump(msg.amount);
         self.balance = self.balance + msg.amount;
-
+        // dump(self.balance);
         require(self.balance >= 0, "Invalid balance");
 
 

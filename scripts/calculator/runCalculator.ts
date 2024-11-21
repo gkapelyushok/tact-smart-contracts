@@ -2,8 +2,10 @@ import { Calculator } from '../../wrappers/Calculator';
 import { NetworkProvider } from '@ton/blueprint';
 import { Address} from '@ton/core';
 
-export async function run(provider: NetworkProvider) {
-    const contractAddress = Address.parse('EQBAGhZgtQjb53KxamuN_cXTl4Wr-XdW8aVuSBEdnjBu7FwR');
+export async function run(provider: NetworkProvider, args: string[]) {
+    const ui = provider.ui();
+
+    const contractAddress = Address.parse(args.length > 0 ? args[0] : await ui.input('Calculator address'));
     const calculator = provider.open(Calculator.fromAddress(contractAddress));
 
     const sumResult = await calculator.getSum(BigInt(5), BigInt(2));

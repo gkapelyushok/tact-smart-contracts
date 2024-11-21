@@ -21,7 +21,7 @@ export async function run(provider: NetworkProvider) {
         },
         {
             $$type: 'Mint',
-            amount: 10000n
+            amount: 10000000000n
         }
     );
 

@@ -15,11 +15,13 @@ describe('Staking', () => {
 
     beforeEach(async () => {
         blockchain = await Blockchain.create();
+        blockchain.now = 500;
         deployer = await blockchain.treasury('deployer', {balance: toNano('100')});
+
     });
     
-    it("my token", async () => {
-        let token = blockchain.openContract(await Token.fromInit(deployer.address, null, 1n));
+    it("should claim reward my token", async () => {
+        let token = blockchain.openContract(await Token.fromInit(deployer.address, null, 10n));
         const tokenDeployResult = await token.send(
             deployer.getSender(),
             {
@@ -57,13 +59,12 @@ describe('Staking', () => {
         });
         expect((await deployerWallet.getGetWalletData()).balance).toEqual(10000n);
         
-        stakingContract = blockchain.openContract(await StakingContract.fromInit(deployer.address, 1n));
+        stakingContract = blockchain.openContract(await StakingContract.fromInit(deployer.address, 10n));
         let stakingWallet = blockchain.openContract(TokenWallet.fromAddress(
             await token.getGetWalletAddress(stakingContract.address)
         ));
 
         await stakingContract.send(deployer.getSender(), { value: toNano("1") }, null);
-
         const transferResult = await deployerWallet.send(
             deployer.getSender(),
             { value: toNano('10') },
@@ -86,91 +87,23 @@ describe('Staking', () => {
             success: true,
         }); 
 
+        console.log(await stakingContract.getStakeAmount(0n));
+        console.log((await stakingWallet.getGetWalletData()).balance);
 
-
-        let stakingData = await stakingContract.getGetReturnStakingData();
-        let userStakeAmount = await stakingContract.getGetUserStakeAmount();
-        let userStakeRecord = await stakingContract.getGetUserStakeRecord();
-        console.log("userStakeRecord", userStakeRecord)
-        for (const a in userStakeAmount) {
-            console.log(a);
-        }
-       
-        console.log("stakingData.index", stakingData.index);
-        console.log("stakingData.parameter", stakingData.parameter);
-        console.log("stakingData.this_contract_jettonWallet", stakingData.this_contract_jettonWallet);
-        console.log("stakingData.total_score", stakingData.total_score);
-    });
-
-    it("func token", async () => {
-        const defaultContent = jettonContentToCell({type: 1, uri: "https://testjetton.org/content.json"});
-        const jwallet_code   = await compile('FuncJettonWallet');
-        const minter_code    = await compile('FuncToken');
-        const jettonMinter   = blockchain.openContract(
-            JettonMinter.createFromConfig(
-              {
-                admin: deployer.address,
-                content: defaultContent,
-                wallet_code: jwallet_code,
-              },
-              minter_code
-            )
-        );
-        
-        const tokenDeployResult = await jettonMinter.sendMint(
-            deployer.getSender(),
-            deployer.address,
-            10000n,
-            0n,
-            toNano("1"),
+        blockchain.now = 100000000;
+        const deployerBalanceBefore = (await deployerWallet.getGetWalletData()).balance
+        const res = await stakingContract.send(deployer.getSender(), { value: toNano("1")},
+            {
+                $$type: "ClaimReward",
+                index_id: 0n,
+            }
         );
 
-        printTransactionFees(tokenDeployResult.transactions);
-
-        let userWallet = async (address: Address) => blockchain.openContract(
-            JettonWallet.createFromAddress(
-              await jettonMinter.getWalletAddress(address)
-            )
-       );
-
-        const deployerWallet = await userWallet(deployer.address);
-        expect(await deployerWallet.getJettonBalance()).toEqual(10000n);
-
-
-        // stakingWalletAddress should be in init!
-        stakingContract = blockchain.openContract(await StakingContract.fromInit(deployer.address, 1n));
-        console.log(deployer.address);
-        let stakingWallet = await userWallet(stakingContract.address);
-
-
-        await stakingContract.send(deployer.getSender(), { value: toNano("1") }, null);
-
-        const transferResult = await deployerWallet.sendTransfer(
-            deployer.getSender(),
-            toNano("10"),
-            100n,
-            stakingContract.address,
-            deployer.address,
-            beginCell().endCell(),
-            toNano("0.2"),
-            beginCell().endCell()
-        );
-        printTransactionFees(transferResult.transactions);
-        
-        
-
-
-        let stakingData = await stakingContract.getGetReturnStakingData();
-        let userStakeAmount = await stakingContract.getGetUserStakeAmount();
-        let userStakeRecord = await stakingContract.getGetUserStakeRecord();
-        console.log("userStakeRecord", userStakeRecord)
-        for (const a in userStakeAmount) {
-            console.log(a);
-        }
-       
-        console.log("stakingData.index", stakingData.index);
-        console.log("stakingData.parameter", stakingData.parameter);
-        console.log("stakingData.this_contract_jettonWallet", stakingData.this_contract_jettonWallet);
-        console.log("stakingData.total_score", stakingData.total_score);
+        const apr = (amount: bigint, percent: bigint, durationTime: bigint) => { 
+            return amount * percent * durationTime / (365n * 24n * 3600n * 100n);
+        };
+        const deployerBalanceAfter = (await deployerWallet.getGetWalletData()).balance;
+        const reward = apr(100n, 10n, 100000000n - 500n);
+        expect(deployerBalanceAfter).toEqual(deployerBalanceBefore + reward);
     });
 });

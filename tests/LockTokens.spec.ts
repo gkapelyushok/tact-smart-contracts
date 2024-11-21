@@ -161,7 +161,7 @@ describe('Lock', () => {
         expect(await lockChild.getGetLockedAmount()).toBe(9000n);
 
         let unlockResult2 = await lockChild.send(treasurer1.getSender(), {value: toNano("1")}, "unlock");
-        // printTransactionFees(unlockResult2.transactions);
+        printTransactionFees(unlockResult2.transactions);
         expect(await lockChild.getGetLockedAmount()).toBe(0n);
 
         expect((await lockChildWallet.getGetWalletData()).balance).toBe(0n);

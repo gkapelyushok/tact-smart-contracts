@@ -75,9 +75,10 @@ describe('Token', () => {
             to: token.address,
             success: true,
         });
-
+        console.log("hhhhh");
         const totalSupplyAfter = (await token.getGetJettonData()).totalSupply;
         expect(totalSupplyAfter).toEqual(totalSupplyBefore + 10000n);
+        console.log("ddddd");
 
         const balanceAfter = (await tokenWallet.getGetWalletData()).balance;
         expect(balanceAfter).toEqual(balanceBefore + 10000n);
