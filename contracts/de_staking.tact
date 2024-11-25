@@ -1,5 +1,5 @@
 import "@stdlib/ownable";
-import "./jetton";
+import "./jetton/messages";
 
 message Stake {
     amount: Int;
@@ -7,7 +7,12 @@ message Stake {
 
 message SendTokens {
     amount: Int;
+    reward: Int;
     to: Address;
+}
+
+message ChangePercent {
+    percent: Int;
 }
 
 contract StakingMaster with Ownable {
@@ -20,11 +25,22 @@ contract StakingMaster with Ownable {
         self.percent = percent;
     }
 
+    receive(){}
+
+    receive(msg: ChangePercent) {
+        self.requireOwner();
+        self.percent = msg.percent;
+    }
+
     receive(stake: TokenNotification) {
         if (self.contractJettonWallet == null) {
             self.contractJettonWallet = context().sender;
         }
-        let childInit = initOf StakingChild(myAddress(), stake.from, self.percent);
+        require(context().sender == self.contractJettonWallet, "not jetton wallet");
+        if (stake.from == self.owner) {
+            return;
+        }
+        let childInit = initOf StakingChild(myAddress(), stake.from);
         let childAddress = contractAddress(childInit);
         send(SendParameters{
             to: childAddress,
@@ -39,13 +55,16 @@ contract StakingMaster with Ownable {
     }
 
     receive(msg: SendTokens) {
+        let childInit = initOf StakingChild(myAddress(), msg.to);
+        let childAddress = contractAddress(childInit);
+        require(context().sender == childAddress, "only child can receive tokens"); 
         send(SendParameters{
             to: self.contractJettonWallet!!,
             value: 0,
             mode: SendRemainingValue,
             body: TokenTransfer{
                 query_id: 0,
-                amount: msg.amount,
+                amount: msg.amount + msg.reward * self.percent / 10000,
                 destination: msg.to,
                 response_destination: myAddress(),
                 custom_payload: null,
@@ -56,10 +75,6 @@ contract StakingMaster with Ownable {
     }
 }
 
-struct StakeRecord {
-    jettonStakeAmount: Int as coins;
-    stake_time: Int as uint32;
-}
 
 message ClaimReward {
 }
@@ -70,59 +85,68 @@ message Unstake {
 contract StakingChild {
     master: Address;
     owner: Address;
-    balance: Int;
-    reward: Int;
-    start_time: Int;
-    percent: Int;
+    stakedAmount: Int;
+    start_time: Int?;
 
-    init(master: Address, owner: Address, percent: Int) {
+    init(master: Address, owner: Address) {
         self.master = master;
         self.owner = owner;
-        self.percent = percent;
-        self.balance = 0;
-        self.reward = 0;
-        self.start_time = now();
+        self.stakedAmount = 0;
     }
 
     receive(msg: Stake) {
-        let ctx: Context = context();
-        require(ctx.sender == self.master, "receive Stake only from master");
-
-        self.balance = self.balance + msg.amount; 
+        require(context().sender == self.master, "receive Stake only from master");
+        // if (self.start_time != null) {
+        //     self.stakedAmount = self.stakedAmount + self.apr();
+        // }
+        self.start_time = now();
+        self.stakedAmount = self.stakedAmount + msg.amount; 
     }
 
     receive(msg: ClaimReward) {
-        self.reward = self.reward + self.apr();
-        self.start_time = now();
+        require(context().sender == self.owner, "receive ClaimReward only from owner");
         send(SendParameters{
             to: self.master,
             value: 0,
             mode: SendRemainingValue,
             body: SendTokens {
-                amount: self.reward,
+                amount: 0,
+                reward: self.apr(),
                 to: self.owner,
             }.toCell()
         });
-        self.reward = 0;
+        self.start_time = now();
+
     }
 
     receive(msg: Unstake) {
-        self.reward = self.reward + self.apr();
-        self.start_time = now();
+        require(context().sender == self.owner, "receive Unstake only from owner");
         send(SendParameters{
             to: self.master,
             value: 0,
             mode: SendRemainingValue,
             body: SendTokens {
-                amount: self.balance + self.reward,
+                amount: self.stakedAmount,
+                reward: self.apr(),
                 to: self.owner,
             }.toCell()
         });
-        self.balance = 0;
-        self.reward = 0;
+        self.start_time = null;
+        self.stakedAmount = 0;
+    }
+
+    get fun reward(): Int {
+        if (self.start_time == null) {
+            return 0;
+        }
+        return self.apr();
+    }
+    get fun amount(): Int {
+        return self.stakedAmount;
     }
 
     fun apr(): Int {
-        return self.balance * self.percent * (now() - self.start_time) / (365 * 24 * 3600 * 100);
+        require(self.start_time != null, "did not stake");
+        return self.stakedAmount * (now() - self.start_time!!) / (365 * 24 * 3600);
     }
 }

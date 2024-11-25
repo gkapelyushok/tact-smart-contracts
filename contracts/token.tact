@@ -131,7 +131,7 @@ contract TokenWallet {
     }
 
     receive(msg: TokenTransferInternal) {
-        dump(msg.amount);
+        // dump(msg.amount);
         // Check sender
         let ctx: Context = context();
         if (ctx.sender != self.master) {

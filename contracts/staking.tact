@@ -49,7 +49,9 @@ contract StakingContract with Deployable, Ownable {
             self.contractJettonWallet = context().sender;
         }
         require(context().sender == self.contractJettonWallet, "not from one of any jetton wallet");
-
+        if (stake.from == self.owner) {
+            return;
+        }
         self.stakeRecord.set(self.index,
             StakeRecord{
                 stakeAddress: stake.from, 
