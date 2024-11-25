@@ -59,7 +59,7 @@ describe('Staking', () => {
         });
         expect((await deployerWallet.getGetWalletData()).balance).toEqual(10000n);
         
-        stakingContract = blockchain.openContract(await StakingContract.fromInit(deployer.address, 10n));
+        stakingContract = blockchain.openContract(await StakingContract.fromInit(deployer.address, 1000n));
         let stakingWallet = blockchain.openContract(TokenWallet.fromAddress(
             await token.getGetWalletAddress(stakingContract.address)
         ));
@@ -95,15 +95,15 @@ describe('Staking', () => {
         const res = await stakingContract.send(deployer.getSender(), { value: toNano("1")},
             {
                 $$type: "ClaimReward",
-                index_id: 0n,
+                indexId: 0n,
             }
         );
 
         const apr = (amount: bigint, percent: bigint, durationTime: bigint) => { 
-            return amount * percent * durationTime / (365n * 24n * 3600n * 100n);
+            return amount * percent * durationTime / (365n * 24n * 3600n * 10000n);
         };
         const deployerBalanceAfter = (await deployerWallet.getGetWalletData()).balance;
-        const reward = apr(100n, 10n, 100000000n - 500n);
+        const reward = apr(100n, 1000n, 100000000n - 500n);
         expect(deployerBalanceAfter).toEqual(deployerBalanceBefore + reward);
     });
 });

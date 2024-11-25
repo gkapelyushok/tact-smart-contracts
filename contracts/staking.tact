@@ -1,11 +1,14 @@
-import "./jetton";
+import "./jetton/messages";
+import "@stdlib/ownable";
+import "@stdlib/deploy";
+
 
 message Unstake {
-    index_id: Int as uint32;
+    indexId: Int as uint32;
 }
 
 message ClaimReward {
-    index_id: Int as uint32;
+    indexId: Int as uint32;
 }
 
 message ChangePercent {
@@ -13,17 +16,17 @@ message ChangePercent {
 }
 
 struct StakeRecord {
-    stake_address: Address;
+    stakeAddress: Address;
     jettonStakeAmount: Int as coins;
-    stake_time: Int as uint32;
+    stakeTime: Int as uint32;
 }
 
 
-contract StakingContract {
+contract StakingContract with Deployable, Ownable {
     contractJettonWallet: Address?;
     owner: Address;
     index: Int as uint32 = 0;
-    stake_record: map<Int, StakeRecord>;
+    stakeRecord: map<Int, StakeRecord>;
     percent: Int as uint16;
 
 
@@ -47,27 +50,29 @@ contract StakingContract {
         }
         require(context().sender == self.contractJettonWallet, "not from one of any jetton wallet");
 
-        self.stake_record.set(self.index,
+        self.stakeRecord.set(self.index,
             StakeRecord{
-                stake_address: stake.from, 
+                stakeAddress: stake.from, 
                 jettonStakeAmount: stake.amount, 
-                stake_time: now(),
+                stakeTime: now(),
             }
         );
         self.index = (self.index + 1);
     }
 
     receive(msg: ClaimReward){
-        let stake_record: StakeRecord = self.stake_record.get(msg.index_id)!!;
-        require(stake_record.jettonStakeAmount > 0, "don't have value");
-        self.stake_record.set(msg.index_id, 
+        require(context().value >= ton("0.1"), "not enough value");
+        let stakeRecord: StakeRecord = self.stakeRecord.get(msg.indexId)!!;
+        require(context().sender == stakeRecord.stakeAddress, "only staker can claim reward");
+        require(stakeRecord.jettonStakeAmount > 0, "don't have value");
+        self.stakeRecord.set(msg.indexId, 
             StakeRecord{
-                stake_address: stake_record.stake_address, 
-                jettonStakeAmount: stake_record.jettonStakeAmount, 
-                stake_time: now(),
+                stakeAddress: stakeRecord.stakeAddress, 
+                jettonStakeAmount: stakeRecord.jettonStakeAmount, 
+                stakeTime: now(),
             }
         );
-        let reward = self.apr(stake_record);
+        let reward = self.apr(stakeRecord);
         send(SendParameters{
                 to: self.contractJettonWallet!!,
                 value: 0,
@@ -77,9 +82,9 @@ contract StakingContract {
                     query_id: 0,
                     amount: reward,
                     destination: context().sender,
-                    response_destination: myAddress(),
+                    response_destination: context().sender,
                     custom_payload: null,
-                    forward_ton_amount: ton("0.1"),
+                    forward_ton_amount: ton("0.01"),
                     forward_payload: emptySlice()
                 }.toCell()
             }
@@ -87,10 +92,12 @@ contract StakingContract {
     }
 
     receive(msg: Unstake) {
-        let stake_record: StakeRecord = self.stake_record.get(msg.index_id)!!;
-        require(stake_record.jettonStakeAmount > 0, "don't have value");
-        self.stake_record.set(msg.index_id, null);
-        let reward = self.apr(stake_record);
+        require(context().value >= ton("0.1"), "not enough value");
+        let stakeRecord: StakeRecord = self.stakeRecord.get(msg.indexId)!!;
+        require(context().sender == stakeRecord.stakeAddress, "only staker can unstake");
+        require(stakeRecord.jettonStakeAmount > 0, "don't have value");
+        self.stakeRecord.set(msg.indexId, null);
+        let reward = self.apr(stakeRecord);
         send(SendParameters{
                 to: self.contractJettonWallet!!,
                 value: 0,
@@ -98,11 +105,11 @@ contract StakingContract {
                 bounce: false, // 0x7362d09c - notify new owner
                 body: TokenTransfer{
                     query_id: 0,
-                    amount: stake_record.jettonStakeAmount + reward,
+                    amount: stakeRecord.jettonStakeAmount + reward,
                     destination: context().sender,
-                    response_destination: myAddress(),
+                    response_destination: context().sender,
                     custom_payload: null,
-                    forward_ton_amount: ton("0.1"),
+                    forward_ton_amount: ton("0.01"),
                     forward_payload: emptySlice()
                 }.toCell()
             }
@@ -110,10 +117,15 @@ contract StakingContract {
     }
 
     get fun stakeAmount(index: Int): StakeRecord? {
-        return self.stake_record.get(index);
+        return self.stakeRecord.get(index);
     }
 
-    fun apr(stake_record: StakeRecord): Int {
-        return stake_record.jettonStakeAmount * self.percent * (now() - stake_record.stake_time) / (365 * 24 * 3600 * 100);
+    get fun reward(index: Int): Int {
+        let stakeRecord: StakeRecord = self.stakeRecord.get(index)!!;
+        return self.apr(stakeRecord);
+    }
+
+    fun apr(stakeRecord: StakeRecord): Int {
+        return stakeRecord.jettonStakeAmount * self.percent * (now() - stakeRecord.stakeTime) / (365 * 24 * 3600 * 10000);
     }
 }
