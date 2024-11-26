@@ -88,7 +88,7 @@ contract StakingChild {
     master: Address;
     owner: Address;
     stakedAmount: Int;
-    start_time: Int?;
+    startTime: Int?;
 
     init(master: Address, owner: Address) {
         self.master = master;
@@ -98,10 +98,10 @@ contract StakingChild {
 
     receive(msg: Stake) {
         require(context().sender == self.master, "receive Stake only from master");
-        if (self.start_time != null) {
+        if (self.startTime != null) {
             self.stakedAmount = self.stakedAmount + self.apr() * msg.percent / 10000;
         }
-        self.start_time = now();
+        self.startTime = now();
         self.stakedAmount = self.stakedAmount + msg.amount; 
     }
 
@@ -117,7 +117,7 @@ contract StakingChild {
                 to: self.owner,
             }.toCell()
         });
-        self.start_time = now();
+        self.startTime = now();
 
     }
 
@@ -133,12 +133,12 @@ contract StakingChild {
                 to: self.owner,
             }.toCell()
         });
-        self.start_time = null;
+        self.startTime = null;
         self.stakedAmount = 0;
     }
 
     get fun reward(): Int {
-        if (self.start_time == null) {
+        if (self.startTime == null) {
             return 0;
         }
         return self.apr();
@@ -148,7 +148,7 @@ contract StakingChild {
     }
 
     fun apr(): Int {
-        require(self.start_time != null, "did not stake");
-        return self.stakedAmount * (now() - self.start_time!!) / (365 * 24 * 3600);
+        require(self.startTime != null, "did not stake");
+        return self.stakedAmount * (now() - self.startTime!!) / (365 * 24 * 3600);
     }
 }
