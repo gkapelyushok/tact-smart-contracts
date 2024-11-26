@@ -131,7 +131,8 @@ describe('Staking', () => {
             return amount * percent * durationTime / (365n * 24n * 3600n * 10000n);
         };
         const stakerBalanceAfter = (await stakerWallet.getGetWalletData()).balance;
-        const reward = apr(100n, 1000n, 100000000n - 500n);
+        let reward = apr(90n, 1000n, 100000000n - 500n);
+        reward -= reward / 10n;
         expect(stakerBalanceAfter).toEqual(stakerBalanceBefore + reward);
 
         blockchain.now = 200000000;
@@ -143,12 +144,8 @@ describe('Staking', () => {
             }
         );
         const stakerBalanceAfter2 = (await stakerWallet.getGetWalletData()).balance;
-        const reward2 = apr(100n, 1000n, 100000000n);
-        
-        console.log(await stakingContract.getStakeAmount(0n));
-        console.log((await stakingWallet.getGetWalletData()).balance);
-        console.log(stakerBalanceAfter2);
-        console.log(stakerBalanceBefore2 + 90n + reward2);
-        expect(stakerBalanceAfter2).toEqual(stakerBalanceBefore2 + 90n + reward2);
+        let reward2 = apr(90n, 1000n, 100000000n) + 90n;
+        reward2 -= reward2 / 10n;
+        expect(stakerBalanceAfter2).toEqual(stakerBalanceBefore2 + reward2);
     });
 });

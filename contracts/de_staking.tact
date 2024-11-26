@@ -3,6 +3,7 @@ import "./jetton/messages";
 
 message Stake {
     amount: Int;
+    percent: Int;
 }
 
 message SendTokens {
@@ -48,6 +49,7 @@ contract StakingMaster with Ownable {
             mode: SendRemainingValue,
             body: Stake {
                 amount: stake.amount,
+                percent: self.percent
             }.toCell(),
             code: childInit.code,
             data: childInit.data,
@@ -96,9 +98,9 @@ contract StakingChild {
 
     receive(msg: Stake) {
         require(context().sender == self.master, "receive Stake only from master");
-        // if (self.start_time != null) {
-        //     self.stakedAmount = self.stakedAmount + self.apr();
-        // }
+        if (self.start_time != null) {
+            self.stakedAmount = self.stakedAmount + self.apr() * msg.percent / 10000;
+        }
         self.start_time = now();
         self.stakedAmount = self.stakedAmount + msg.amount; 
     }
