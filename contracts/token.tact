@@ -13,7 +13,7 @@ contract Token with Jetton {
     percent: Int;
 
     init(owner: Address, content: Cell?, percent: Int) {
-        require(percent <= 50 && percent > 0, "Invalid percent");
+        require(percent <= 50 && percent >= 0, "Invalid percent");
         self.totalSupply = 0;
         self.owner = owner;
         self.mintable = true;
@@ -99,7 +99,7 @@ contract TokenWallet {
                     amount: contractFeeAmount,
                     query_id: msg.query_id,
                     from: self.owner,
-                    responseAddress: self.owner,
+                    responseAddress: msg.response_destination,
                     forward_ton_amount: 0,
                     forward_payload: emptySlice()
                 }.toCell(),
@@ -114,7 +114,7 @@ contract TokenWallet {
         let walletAddress: Address = contractAddress(init);
         send(SendParameters{
             to: walletAddress, 
-            value: msgValue, 
+            value: msgValue - ton("0.1"), 
             bounce: true,
             // mode: SendRemainingValue,
             body: TokenTransferInternal{
