@@ -39,6 +39,7 @@ contract StakingMaster {
     receive(){}
 
     receive(msg: TokenNotification) {
+        require(msg.amount > 0, "no amount received");
         if (msg.from == self.owner) {
             if (self.rewardsWallet == null) {
                 self.rewardsWallet = context().sender;
@@ -46,7 +47,7 @@ contract StakingMaster {
             require(context().sender == self.rewardsWallet, "not rewards jetton wallet");
             require(self.stakedAmount > 0, "no stakes");
             self.totalReward = self.totalReward + msg.amount;
-            self.accumulator = self.accumulator + self.totalReward * 1000000000 / self.stakedAmount;
+            self.accumulator = self.accumulator + msg.amount * 1000000000 / self.stakedAmount;
             return;
         }
         if (self.stakesWallet == null) {
@@ -56,7 +57,6 @@ contract StakingMaster {
         let childInit = initOf StakingChild(myAddress(), msg.from);
         let childAddress = contractAddress(childInit);
         self.stakedAmount = self.stakedAmount + msg.amount;
-        require(self.stakedAmount > 0, "invalid stakes balance");
 
         send(SendParameters{
             to: childAddress,
@@ -79,21 +79,23 @@ contract StakingMaster {
         require(context().sender == childAddress, "receive SendReward only from Child");
         require(msg.stakedAmount > 0, "not staked amount");
         let reward = (self.accumulator - msg.lastUpdatedAccumulator) * msg.stakedAmount / 1000000000;
-        self.totalReward = self.totalReward - reward;
         let forward_payload: Slice = beginCell().storeUint(0, 8).asSlice();
-        send(SendParameters{
-            to: self.rewardsWallet!!,
-            value: ton("0.2"),
-            body: TokenTransfer{
-                query_id: 0,
-                amount: reward,
-                destination: msg.to,
-                response_destination: msg.to,
-                custom_payload: null,
-                forward_ton_amount: 0,
-                forward_payload: forward_payload
-            }.toCell()
-        });
+        if (reward > 0) {
+            self.totalReward = self.totalReward - reward;
+            send(SendParameters{
+                to: self.rewardsWallet!!,
+                value: ton("0.2"),
+                body: TokenTransfer{
+                    query_id: 0,
+                    amount: reward,
+                    destination: msg.to,
+                    response_destination: msg.to,
+                    custom_payload: null,
+                    forward_ton_amount: 0,
+                    forward_payload: forward_payload,
+                }.toCell()
+            });
+        }
 
         if (msg.unstake) {
             self.stakedAmount = self.stakedAmount - msg.stakedAmount;
@@ -107,7 +109,7 @@ contract StakingMaster {
                     response_destination: msg.to,
                     custom_payload: null,
                     forward_ton_amount: 0,
-                    forward_payload: forward_payload
+                    forward_payload: forward_payload,
                 }.toCell()
             });
             return;
@@ -115,7 +117,8 @@ contract StakingMaster {
         
         send(SendParameters{
             to: childAddress,
-            value: context().value - ton("0.2"),
+            value: 0,
+            mode: SendRemainingValue,
             body: UpdateAccumulator {
                 accumulator: self.accumulator
             }.toCell(),
