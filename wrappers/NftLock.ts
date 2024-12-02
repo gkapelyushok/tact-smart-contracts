@@ -1,0 +1,1 @@
+export * from '../build/NftLock/tact_NftLock';
