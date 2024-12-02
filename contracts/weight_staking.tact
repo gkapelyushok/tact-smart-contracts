@@ -8,6 +8,7 @@ message Stake {
 message SendTokens {
     lastUpdatedAccumulator: Int;
     stakedAmount: Int;
+    reward: Int;
     unstake: Bool;
     to: Address;
 }
@@ -28,16 +29,18 @@ contract StakingMaster {
     totalReward: Int;
     stakedAmount: Int;
     accumulator: Int;
+    rewardExcesses: Int;
 
     init(owner: Address) {
         self.owner = owner;
         self.totalReward = 0;
         self.stakedAmount = 0;
         self.accumulator = 0;
+        self.rewardExcesses = 0;
     }
 
     receive(){}
-
+    
     receive(msg: TokenNotification) {
         require(msg.amount > 0, "no amount received");
         if (msg.from == self.owner) {
@@ -45,7 +48,10 @@ contract StakingMaster {
                 self.rewardsWallet = context().sender;
             }
             require(context().sender == self.rewardsWallet, "not rewards jetton wallet");
-            require(self.stakedAmount > 0, "no stakes");
+            if (self.stakedAmount == 0) {
+                self.rewardExcesses = self.rewardExcesses + msg.amount;
+                return;
+            }
             self.totalReward = self.totalReward + msg.amount;
             self.accumulator = self.accumulator + msg.amount * 1000000000 / self.stakedAmount;
             return;
@@ -72,13 +78,32 @@ contract StakingMaster {
 
     }
 
+    receive("RewardExcesses") {
+        require(context().sender == self.owner, "receice RewardExcesses only from owner");
+        let forward_payload: Slice = beginCell().storeUint(0, 8).asSlice();
+        send(SendParameters{
+            to: self.rewardsWallet!!,
+            value: 0,
+            mode: SendRemainingValue,
+            body: TokenTransfer{
+                query_id: 0,
+                amount: self.rewardExcesses,
+                destination: self.owner,
+                response_destination: self.owner,
+                custom_payload: null,
+                forward_ton_amount: 0,
+                forward_payload: forward_payload,
+            }.toCell()
+        });
+    }
+
     receive(msg: SendTokens) {
         require(context().value > ton("0.5"), "not enough TON");
         let childInit = initOf StakingChild(myAddress(), msg.to);
         let childAddress = contractAddress(childInit);
         require(context().sender == childAddress, "receive SendReward only from Child");
         require(msg.stakedAmount > 0, "not staked amount");
-        let reward = (self.accumulator - msg.lastUpdatedAccumulator) * msg.stakedAmount / 1000000000;
+        let reward = msg.reward + (self.accumulator - msg.lastUpdatedAccumulator) * msg.stakedAmount / 1000000000;
         let forward_payload: Slice = beginCell().storeUint(0, 8).asSlice();
         if (reward > 0) {
             self.totalReward = self.totalReward - reward;
@@ -135,6 +160,7 @@ contract StakingChild {
     owner: Address;
     stakedAmount: Int;
     lastUpdatedAccumulator: Int;
+    reward: Int;
     claimingReward: Bool;
 
     init(master: Address, owner: Address) {
@@ -142,11 +168,13 @@ contract StakingChild {
         self.owner = owner;
         self.stakedAmount = 0;
         self.lastUpdatedAccumulator = 0;
+        self.reward = 0;
         self.claimingReward = false;
     }
 
     receive(msg: Stake) {
         require(context().sender == self.master, "receive Stake only from master");
+        self.reward = self.reward + (msg.accumulator - self.lastUpdatedAccumulator) * self.stakedAmount / 1000000000;
         self.stakedAmount = self.stakedAmount + msg.amount; 
         self.lastUpdatedAccumulator = msg.accumulator;    
     }
@@ -168,10 +196,12 @@ contract StakingChild {
             body: SendTokens {
                 lastUpdatedAccumulator: self.lastUpdatedAccumulator,
                 stakedAmount: self.stakedAmount,
+                reward: self.reward,
                 unstake: false,
                 to: self.owner,
             }.toCell()
         });
+        self.reward = 0;
     }
 
     receive(msg: Unstake) {
@@ -183,12 +213,13 @@ contract StakingChild {
             body: SendTokens {
                 lastUpdatedAccumulator: self.lastUpdatedAccumulator,
                 stakedAmount: self.stakedAmount,
+                reward: self.reward,
                 unstake: true,
                 to: self.owner,
             }.toCell()
         });
         self.stakedAmount = 0;
-
+        self.reward = 0;
     }
 
     get fun stakedAmount(): Int {

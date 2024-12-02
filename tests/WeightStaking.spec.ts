@@ -538,5 +538,60 @@ describe('Staking', () => {
         expect (stakerABalanceAfter3).toEqual(stakerABalanceBefore3 + 40000n * 100n / 800n + 100n);
         expect (stakerBBalanceAfter3).toEqual(stakerBBalanceBefore3 + 40000n * 300n / 800n + 300n);
         expect (stakerCBalanceAfter3).toEqual(stakerCBalanceBefore3 + 40000n * 400n / 800n + 400n);
+
+        const transferAResult2 = await stakerAWallet.send(
+            stakerA.getSender(),
+            { value: toNano('10') },
+            {
+                $$type: "TokenTransfer",
+                query_id: 0n,
+                amount: 100n,
+                destination: stakingMasterContract.address,  
+                response_destination: stakerA.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('0.2'),
+                forward_payload: beginCell().endCell().asSlice(),
+            }
+        );
+
+
+        
+        const mintRewardResult4 = await deployerAWallet.send(
+            deployerA.getSender(),
+            { value: toNano('10') },
+            {
+                $$type: "TokenTransfer",
+                query_id: 0n,
+                amount: 10000n,
+                destination: stakingMasterContract.address,  
+                response_destination: deployerA.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('0.2'),
+                forward_payload: beginCell().endCell().asSlice(),
+            }
+        );
+
+        const transferAResult3 = await stakerAWallet.send(
+            stakerA.getSender(),
+            { value: toNano('10') },
+            {
+                $$type: "TokenTransfer",
+                query_id: 0n,
+                amount: 100n,
+                destination: stakingMasterContract.address,  
+                response_destination: stakerA.address,
+                custom_payload: null,
+                forward_ton_amount: toNano('0.2'),
+                forward_payload: beginCell().endCell().asSlice(),
+            }
+        );
+
+        const stakerABalanceBefore4 = (await stakerAWallet.getGetWalletData()).balance;
+
+        const claimRewardAResult4 = await stakingChildContractA.send(stakerA.getSender(), { value: toNano("2")}, { $$type: "ClaimReward" });
+
+        const stakerABalanceAfter4 = (await stakerAWallet.getGetWalletData()).balance;
+
+        expect(stakerABalanceAfter4).toEqual(stakerABalanceBefore4 + 10000n);
     });
 });
