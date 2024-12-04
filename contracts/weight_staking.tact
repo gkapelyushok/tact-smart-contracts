@@ -79,7 +79,7 @@ contract StakingMaster {
     }
 
     receive("RewardExcesses") {
-        require(context().sender == self.owner, "receice RewardExcesses only from owner");
+        require(context().sender == self.owner, "receive RewardExcesses only from owner");
         let forward_payload: Slice = beginCell().storeUint(0, 8).asSlice();
         send(SendParameters{
             to: self.rewardsWallet!!,
