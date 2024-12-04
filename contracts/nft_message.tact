@@ -4,6 +4,9 @@ message LogEventMintRecord {
     generate_number: Int;
 }
 
+message Mint {
+    individual_content: Cell;
+}
 
 message(0x693d3950) GetRoyaltyParams {
     query_id: Int as uint64;
