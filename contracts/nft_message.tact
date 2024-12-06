@@ -58,3 +58,9 @@ struct GetNftData {
     owner_address: Address;
     individual_content: Cell;
 }
+
+struct CollectionContent {
+    name: String;
+    description: String;
+    image: String;
+}
